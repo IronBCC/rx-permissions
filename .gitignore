@@ -25,6 +25,10 @@ proguard/
 # Log Files
 *.log
 
+# Android Studio
+.idea/
+*.iml
+
 # Android Studio Navigation editor temp files
 .navigation/
 

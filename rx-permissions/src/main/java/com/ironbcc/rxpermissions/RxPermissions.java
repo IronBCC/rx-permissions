@@ -7,10 +7,7 @@ import android.content.pm.PackageManager;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import rx.Observable;
-import rx.functions.Action0;
-import rx.functions.Func1;
-import rx.functions.Func2;
-import rx.functions.FuncN;
+import rx.functions.*;
 import rx.subjects.PublishSubject;
 
 import java.util.ArrayList;
@@ -23,17 +20,17 @@ public class RxPermissions {
     private static final HashMap<Integer, PublishSubject<Boolean>> requestMap = new HashMap<>();
 
     @NonNull
-    public static Observable<Boolean> observe(final Activity activity, String... permissions) {
-        List<Observable<Boolean>> observables = new ArrayList<>(permissions.length);
-        for (String permission : permissions) {
-            PublishSubject<Boolean> subj = PublishSubject.create();
-            observables.add(subj.startWith(isGranted(activity, permission)));
-        }
-        return Observable.combineLatest(observables, RESULT_CHECKER);
+    public static Observable<Boolean> observe(final Activity activity, final PermissionGroup permissions) {
+        return Observable.defer(new Func0<Observable<Boolean>>() {
+            @Override
+            public Observable<Boolean> call() {
+                return Observable.just(isGranted(activity, permissions.getValue()));
+            }
+        });
     }
 
     @NonNull
-    public static Observable<Boolean> request(final Activity activity, final String... permissions) {
+    public static Observable<Boolean> request(final Activity activity, final PermissionGroup permissions) {
         return observe(activity, permissions)
             .flatMap(new Func1<Boolean, Observable<Boolean>>() {
                     @Override
@@ -47,7 +44,7 @@ public class RxPermissions {
     }
 
     @NonNull
-    public static Observable<Boolean> requestWithRationale(final Dialog rationaleDialog, final Activity activity, final String... permissions) {
+    public static Observable<Boolean> requestWithRationale(final Dialog rationaleDialog, final Activity activity, final PermissionGroup permissions) {
         final PublishSubject<Void> rationaleSubject = PublishSubject.create();
         rationaleDialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
             @Override
@@ -67,25 +64,17 @@ public class RxPermissions {
     }
 
     @NonNull
-    public static Observable<Boolean> requestWithRationale(final Observable<Void> rationale, final Activity activity, final String... permissions) {
-        return Observable.from(permissions)
-            .map(new Func1<String, Boolean>() {
-                @Override
-                public Boolean call(String permission) {
-                    return ActivityCompat.shouldShowRequestPermissionRationale(activity, permission);
-                }
-            })
-            .reduce(new Func2<Boolean, Boolean, Boolean>() {
-                @Override
-                public Boolean call(Boolean value, Boolean accumulatedValue) {
-                    accumulatedValue = accumulatedValue ? value : false;
-                    return accumulatedValue;
-                }
-            })
+    public static Observable<Boolean> requestWithRationale(final Observable<Void> rationale, final Activity activity, final PermissionGroup permissions) {
+        return Observable.defer(new Func0<Observable<Boolean>>() {
+            @Override
+            public Observable<Boolean> call() {
+                return Observable.just(ActivityCompat.shouldShowRequestPermissionRationale(activity, permissions.getValue()));
+            }
+        })
             .flatMap(new Func1<Boolean, Observable<Boolean>>() {
                 @Override
                 public Observable<Boolean> call(Boolean shouldShowRequestPermissionRationale) {
-                    if(shouldShowRequestPermissionRationale) {
+                    if (shouldShowRequestPermissionRationale) {
                         return rationale
                             .flatMap(new Func1<Void, Observable<Boolean>>() {
                                 @Override
@@ -97,11 +86,11 @@ public class RxPermissions {
                     return request(activity, permissions);
                 }
             })
-        ;
+            ;
     }
 
     @NonNull
-    private static Observable<Boolean> schedulePermissionsRequest(final Activity activity, final String[] permissions) {
+    private static Observable<Boolean> schedulePermissionsRequest(final Activity activity, final PermissionGroup permissions) {
         final int requestCode = getRequestCode();
         final PublishSubject<Boolean> subj = PublishSubject.create();
         requestMap.put(requestCode, subj);
@@ -109,7 +98,7 @@ public class RxPermissions {
         return subj.doOnSubscribe(new Action0() {
             @Override
             public void call() {
-                ActivityCompat.requestPermissions(activity, permissions, requestCode);
+                ActivityCompat.requestPermissions(activity, new String[] {permissions.getValue()}, requestCode);
             }
         });
     }

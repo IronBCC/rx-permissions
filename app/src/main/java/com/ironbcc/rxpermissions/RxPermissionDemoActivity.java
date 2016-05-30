@@ -48,7 +48,7 @@ public class RxPermissionDemoActivity
         RxPermissions.requestWithRationale(
             dialog,
             this,
-            Manifest.permission.READ_CONTACTS
+            PermissionGroup.CONTACTS
         )
             .doOnNext(new Action1<Boolean>() {
                 @Override

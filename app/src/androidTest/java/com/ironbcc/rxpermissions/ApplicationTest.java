@@ -1,4 +1,4 @@
-package com.ironbcc.rxpermitions;
+package com.ironbcc.rxpermissions;
 
 import android.app.Application;
 import android.test.ApplicationTestCase;

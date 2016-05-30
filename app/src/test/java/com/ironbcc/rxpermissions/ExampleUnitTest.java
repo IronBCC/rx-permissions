@@ -1,4 +1,4 @@
-package com.ironbcc.rxpermitions;
+package com.ironbcc.rxpermissions;
 
 import org.junit.Test;
 

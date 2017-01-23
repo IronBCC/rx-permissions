@@ -2,10 +2,12 @@ package com.ironbcc.rxpermissions;
 
 import android.app.Activity;
 import android.app.Dialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.pm.PackageManager;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import rx.Observable;
 import rx.functions.*;
 import rx.subjects.PublishSubject;
@@ -20,11 +22,11 @@ public class RxPermissions {
     private static final HashMap<Integer, PublishSubject<Boolean>> requestMap = new HashMap<>();
 
     @NonNull
-    public static Observable<Boolean> observe(final Activity activity, final PermissionGroup permissions) {
+    public static Observable<Boolean> observe(final Context context, final PermissionGroup permissions) {
         return Observable.defer(new Func0<Observable<Boolean>>() {
             @Override
             public Observable<Boolean> call() {
-                return Observable.just(isGranted(activity, permissions.getValue()));
+                return Observable.just(isGranted(context, permissions));
             }
         });
     }
@@ -89,6 +91,10 @@ public class RxPermissions {
             ;
     }
 
+    public static boolean isGranted(Context context, PermissionGroup permission) {
+        return ContextCompat.checkSelfPermission(context, permission.getValue()) == PackageManager.PERMISSION_GRANTED;
+    }
+
     @NonNull
     private static Observable<Boolean> schedulePermissionsRequest(final Activity activity, final PermissionGroup permissions) {
         final int requestCode = getRequestCode();
@@ -140,7 +146,7 @@ public class RxPermissions {
     }
 
     private static boolean isGranted(final Activity activity, String permission) {
-        return ActivityCompat.checkSelfPermission(activity, permission) == PackageManager.PERMISSION_GRANTED;
+        return ContextCompat.checkSelfPermission(activity, permission) == PackageManager.PERMISSION_GRANTED;
     }
 
     private static FuncN<Boolean> RESULT_CHECKER = new FuncN<Boolean>() {
